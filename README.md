@@ -1,4 +1,7 @@
-# nippo-local
+<div align="center">
+
+<img src="docs/img/logo.png" alt="Logo" width="320" />
+</div>
 
 ローカル環境で日報を扱うためのプロジェクトです。
 
