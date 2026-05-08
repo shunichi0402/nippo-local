@@ -30,6 +30,7 @@ MVP の技術スタックは次を基本方針とする。
 - Express
 - SQLite へのアクセスには `better-sqlite3` を第一候補とする
 - API の入出力検証には Zod を検討する
+- 認証は JWT ベースの Bearer トークン方式とする
 
 ### UI
 
@@ -85,6 +86,9 @@ apps/api/src/
 ### LLM / 意味検索
 
 - MVP では必須にしない
+- 外部 AI プロバイダ候補は OpenAI (ChatGPT) と Anthropic (Claude) とする
+- 設定画面でプロバイダごとにモデル ID と API キーを指定できるようにする
+- API キーはサーバー側で暗号化保存し、ブラウザへ平文で返さない
 - LLM を活用する場合は、検索拡張として `sqlite-vec` を検討する
 - Embedding、ベクトル検索、LLM による生成は責務を分ける
 
@@ -92,6 +96,7 @@ apps/api/src/
 
 - 写真や音声は SQLite に直接保存せず、ローカルファイルとして保存する
 - SQLite には添付ファイルの相対パスとメタデータを保存する
+- 添付ファイル ID と保存ファイル名には UUID v7 を使う
 - `data/` ディレクトリ全体をコピーすればバックアップできる構成にする
 
 想定する保存構成:
@@ -162,6 +167,7 @@ data/
 ## 影響
 
 - API は Express 上に REST API として実装する
+- 認証が必要な API は Authorization ヘッダーの Bearer トークンを検証する
 - UI は Vue Router を前提に、画面単位で構成する
 - 検索処理は通常検索、意味検索、ハイブリッド検索を分けられるように設計する
 - DB 操作は repository 層を用意し、FTS5 や将来の `sqlite-vec` 利用を隠蔽する
