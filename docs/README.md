@@ -12,6 +12,16 @@
 ## 仕様書
 
 - [メモ・写真・録音から日報/月報を作る機能要件](specs/summary/2026-05-08-requirements.md)
+- [ユースケース別詳細仕様](specs/usecases/README.md)
+- [UC01: テキストメモを素早く記録する](specs/usecases/2026-05-09-uc01-capture-text-note.md)
+- [UC02: 写真を記録して文脈を残す](specs/usecases/2026-05-09-uc02-attach-photo.md)
+- [UC03: 音声と文字起こしを記録する](specs/usecases/2026-05-09-uc03-register-audio-transcript.md)
+- [UC04: 記録を検索して再利用する](specs/usecases/2026-05-09-uc04-search-records.md)
+- [UC05: 日報の下書きを作成して編集する](specs/usecases/2026-05-09-uc05-generate-daily-report.md)
+- [UC06: 月報の下書きを作成して編集する](specs/usecases/2026-05-09-uc06-generate-monthly-report.md)
+- [UC07: ログインとアカウント管理を行う](specs/usecases/2026-05-09-uc07-auth-and-account-management.md)
+- [UC08: 外部 AI プロバイダを設定する](specs/usecases/2026-05-09-uc08-configure-ai-provider.md)
+- [UC09: 日報/月報テンプレートを編集する](specs/usecases/2026-05-09-uc09-edit-report-template.md)
 
 ## 判断記録
 
