@@ -13,6 +13,10 @@
 
 - [メモ・写真・録音から日報/月報を作る機能要件](specs/summary/2026-05-08-requirements.md)
 
+## 判断記録
+
+- [ローカル日報アプリの技術選定](decisions/2026-05-09-technology-selection.md)
+
 ## 書き方の原則
 
 - 実装前に背景、目的、受け入れ条件を書く
