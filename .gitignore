@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+data/*
+!data/.gitkeep
+
+apps/*/dist/
+apps/*/node_modules/
+
