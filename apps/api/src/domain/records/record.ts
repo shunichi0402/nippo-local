@@ -11,6 +11,7 @@ export type RecordKind = (typeof recordKinds)[number];
 
 export type RecordItem = {
   id: string;
+  ownerUserId: string;
   targetDate: string;
   title: string;
   body: string;
@@ -24,9 +25,10 @@ export type RecordItem = {
 };
 
 export type NewRecord = {
+  ownerUserId: string;
   targetDate: string;
   title: string;
-  body?: string;
+  body: string;
   kind?: RecordKind;
   tags?: string[];
   category?: string | null;
@@ -34,3 +36,13 @@ export type NewRecord = {
   transcript?: string | null;
 };
 
+export type UpdateRecord = {
+  targetDate: string;
+  title: string;
+  body: string;
+  kind?: RecordKind;
+  tags?: string[];
+  category?: string | null;
+  project?: string | null;
+  transcript?: string | null;
+};

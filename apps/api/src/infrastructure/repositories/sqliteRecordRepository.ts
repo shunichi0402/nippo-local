@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { NewRecord, RecordItem, RecordKind } from '../../domain/records/record.js';
+import type { NewRecord, RecordItem, RecordKind, UpdateRecord } from '../../domain/records/record.js';
 import type { RecordRepository, RecordSearchQuery } from '../../domain/records/recordRepository.js';
 import type { SqliteConnection } from '../database/sqlite/connection.js';
 
 type RecordRow = {
   id: string;
+  owner_user_id: string;
   target_date: string;
   title: string;
   body: string;
@@ -24,9 +25,10 @@ export class SqliteRecordRepository implements RecordRepository {
     const now = new Date().toISOString();
     const item: RecordItem = {
       id: randomUUID(),
+      ownerUserId: record.ownerUserId,
       targetDate: record.targetDate,
       title: record.title,
-      body: record.body ?? '',
+      body: record.body,
       kind: record.kind ?? 'memo',
       tags: record.tags ?? [],
       category: record.category ?? null,
@@ -39,10 +41,10 @@ export class SqliteRecordRepository implements RecordRepository {
     this.db
       .prepare(`
         INSERT INTO records (
-          id, target_date, title, body, kind, tags_json, category, project, transcript, created_at, updated_at
+          id, owner_user_id, target_date, title, body, kind, tags_json, category, project, transcript, created_at, updated_at
         )
         VALUES (
-          @id, @targetDate, @title, @body, @kind, @tagsJson, @category, @project, @transcript, @createdAt, @updatedAt
+          @id, @ownerUserId, @targetDate, @title, @body, @kind, @tagsJson, @category, @project, @transcript, @createdAt, @updatedAt
         )
       `)
       .run({
@@ -63,7 +65,7 @@ export class SqliteRecordRepository implements RecordRepository {
           SELECT rowid FROM record_fts WHERE record_fts MATCH @keyword
         )
       `);
-      params.keyword = query.keyword;
+      params.keyword = escapeFtsQuery(query.keyword);
     }
 
     if (query.targetDate) {
@@ -94,11 +96,60 @@ export class SqliteRecordRepository implements RecordRepository {
 
     return row ? mapRow(row) : null;
   }
+
+  update(id: string, record: UpdateRecord): RecordItem | null {
+    const now = new Date().toISOString();
+
+    const result = this.db
+      .prepare(`
+        UPDATE records
+        SET
+          target_date = @targetDate,
+          title = @title,
+          body = @body,
+          kind = @kind,
+          tags_json = @tagsJson,
+          category = @category,
+          project = @project,
+          transcript = @transcript,
+          updated_at = @updatedAt
+        WHERE id = @id
+      `)
+      .run({
+        id,
+        targetDate: record.targetDate,
+        title: record.title,
+        body: record.body,
+        kind: record.kind ?? 'memo',
+        tagsJson: JSON.stringify(record.tags ?? []),
+        category: record.category ?? null,
+        project: record.project ?? null,
+        transcript: record.transcript ?? null,
+        updatedAt: now
+      });
+
+    if (result.changes === 0) {
+      return null;
+    }
+
+    return this.findById(id);
+  }
+
+  delete(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM records WHERE id = ?').run(id);
+
+    return result.changes > 0;
+  }
+}
+
+function escapeFtsQuery(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function mapRow(row: RecordRow): RecordItem {
   return {
     id: row.id,
+    ownerUserId: row.owner_user_id,
     targetDate: row.target_date,
     title: row.title,
     body: row.body,
@@ -111,4 +162,3 @@ function mapRow(row: RecordRow): RecordItem {
     updatedAt: row.updated_at
   };
 }
-

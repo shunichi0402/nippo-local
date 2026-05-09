@@ -5,6 +5,7 @@ export function runMigrations(db: SqliteConnection): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS records (
       id TEXT PRIMARY KEY,
+      owner_user_id TEXT NOT NULL DEFAULT 'local-user',
       target_date TEXT NOT NULL,
       title TEXT NOT NULL,
       body TEXT NOT NULL DEFAULT '',
@@ -48,6 +49,12 @@ export function runMigrations(db: SqliteConnection): void {
       VALUES (new.rowid, new.title, new.body, new.tags_json, new.category, new.project, new.transcript);
     END;
   `);
+
+  const columns = db.prepare('PRAGMA table_info(records)').all() as Array<{ name: string }>;
+
+  if (!columns.some((column) => column.name === 'owner_user_id')) {
+    db.exec("ALTER TABLE records ADD COLUMN owner_user_id TEXT NOT NULL DEFAULT 'local-user';");
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -56,4 +63,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   db.close();
   console.log('SQLite migrations completed.');
 }
-

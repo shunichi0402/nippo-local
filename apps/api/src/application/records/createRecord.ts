@@ -8,4 +8,3 @@ export class CreateRecordUseCase {
     return this.records.create(input);
   }
 }
-
