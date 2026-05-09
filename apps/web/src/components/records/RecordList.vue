@@ -20,15 +20,34 @@
           </v-avatar>
         </template>
 
-        <v-list-item-title>{{ record.title }}</v-list-item-title>
+        <v-list-item-title>{{ record.title || '無題のメモ' }}</v-list-item-title>
         <v-list-item-subtitle>
-          {{ record.targetDate }} / {{ record.body || '本文なし' }}
+          {{ record.targetDate }} / {{ preview(record.body) }}
         </v-list-item-subtitle>
 
         <template #append>
-          <v-chip v-for="tag in record.tags" :key="tag" size="small" variant="tonal" class="ml-1">
-            {{ tag }}
-          </v-chip>
+          <div class="record-actions">
+            <div class="record-chips">
+              <v-chip v-if="record.category" size="small" variant="tonal" color="secondary">
+                {{ record.category }}
+              </v-chip>
+              <v-chip v-if="record.project" size="small" variant="tonal" color="info">
+                {{ record.project }}
+              </v-chip>
+              <v-chip v-for="tag in record.tags" :key="tag" size="small" variant="tonal">
+                {{ tag }}
+              </v-chip>
+            </div>
+            <v-btn icon="mdi-pencil-outline" variant="text" size="small" aria-label="編集" @click="$emit('edit', record)" />
+            <v-btn
+              icon="mdi-trash-can-outline"
+              variant="text"
+              size="small"
+              color="error"
+              aria-label="削除"
+              @click="$emit('delete', record)"
+            />
+          </div>
         </template>
       </v-list-item>
     </v-list>
@@ -49,6 +68,8 @@ defineProps<{
 
 defineEmits<{
   refresh: [];
+  edit: [record: RecordItem];
+  delete: [record: RecordItem];
 }>();
 
 function kindIcon(kind: RecordKind): string {
@@ -63,5 +84,24 @@ function kindIcon(kind: RecordKind): string {
 
   return icons[kind];
 }
+
+function preview(body: string): string {
+  return body.length > 120 ? `${body.slice(0, 120)}...` : body;
+}
 </script>
 
+<style scoped>
+.record-actions {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  max-width: 460px;
+}
+
+.record-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+</style>
