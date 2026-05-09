@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { CreateRecordUseCase } from '../../../application/records/createRecord.js';
 import { ListRecordsUseCase } from '../../../application/records/listRecords.js';
 import type { RecordRepository } from '../../../domain/records/recordRepository.js';
-import { recordKinds } from '../../../domain/records/record.js';
+import { recordKinds, transcriptMethods } from '../../../domain/records/record.js';
 
 const createRecordSchema = z.object({
+  authUserId: z.string().min(1).optional(),
   targetDate: z.string().min(1),
   title: z.string().min(1),
   body: z.string().optional(),
@@ -13,7 +14,8 @@ const createRecordSchema = z.object({
   tags: z.array(z.string()).optional(),
   category: z.string().nullable().optional(),
   project: z.string().nullable().optional(),
-  transcript: z.string().nullable().optional()
+  transcript: z.string().nullable().optional(),
+  transcriptMethod: z.enum(transcriptMethods).nullable().optional()
 });
 
 const listRecordsSchema = z.object({
@@ -40,7 +42,12 @@ export function createRecordRouter(recordRepository: RecordRepository): Router {
   router.post('/', (req, res, next) => {
     try {
       const input = createRecordSchema.parse(req.body);
-      res.status(201).json({ record: createRecord.execute(input) });
+      res.status(201).json({
+        record: createRecord.execute({
+          ...input,
+          ownerUserId: input.authUserId ?? 'local-user'
+        })
+      });
     } catch (error) {
       next(error);
     }
@@ -48,4 +55,3 @@ export function createRecordRouter(recordRepository: RecordRepository): Router {
 
   return router;
 }
-
