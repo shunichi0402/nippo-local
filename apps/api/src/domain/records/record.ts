@@ -1,3 +1,5 @@
+import type { PhotoAttachment } from '../attachments/attachment.js';
+
 export const recordKinds = [
   'memo',
   'photo',
@@ -19,6 +21,8 @@ export type RecordItem = {
   category: string | null;
   project: string | null;
   transcript: string | null;
+  ownerUserId: string;
+  attachments: PhotoAttachment[];
   createdAt: string;
   updatedAt: string;
 };
@@ -32,5 +36,5 @@ export type NewRecord = {
   category?: string | null;
   project?: string | null;
   transcript?: string | null;
+  ownerUserId?: string;
 };
-

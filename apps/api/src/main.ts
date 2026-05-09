@@ -8,9 +8,8 @@ const db = createSqliteConnection(env.dataDir);
 
 runMigrations(db);
 
-const app = createApp({ db });
+const app = createApp({ db, dataDir: env.dataDir });
 
 app.listen(env.port, env.host, () => {
   console.log(`API listening on http://${env.host}:${env.port}`);
 });
-

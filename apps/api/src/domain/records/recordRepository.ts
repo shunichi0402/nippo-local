@@ -11,5 +11,5 @@ export interface RecordRepository {
   create(record: NewRecord): RecordItem;
   list(query?: RecordSearchQuery): RecordItem[];
   findById(id: string): RecordItem | null;
+  findOwnerUserId(id: string): string | null;
 }
-
