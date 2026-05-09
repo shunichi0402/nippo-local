@@ -12,9 +12,11 @@
     "db:migrate": "tsx src/infrastructure/database/sqlite/migrate.ts"
   },
   "dependencies": {
+    "@types/multer": "^2.1.0",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "multer": "^2.1.1",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -29,4 +31,3 @@
     "vitest": "^4.0.8"
   }
 }
-

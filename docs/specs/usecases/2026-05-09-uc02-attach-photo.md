@@ -117,6 +117,26 @@ MVP では画像加工よりも、写真だけの単体記録と既存記録へ�
 - 認可系: 他ユーザー所有 `recordId` への添付、更新、削除を検証
 - 削除系: `detach_only` と `delete_file` の挙動差を確認
 
+## 実装メモ
+
+- API:
+  - `POST /api/records/photo`: 写真だけの単体記録を作成し、同時に写真を 1 件添付する
+  - `POST /api/records/:recordId/attachments`: 既存記録へ写真を添付する
+  - `GET /api/attachments/:attachmentId/file`: 写真をプレビュー取得する
+  - `PATCH /api/attachments/:attachmentId`: 写真説明文を更新する
+  - `DELETE /api/attachments/:attachmentId`: `detach_only` または `delete_file` で削除する
+- 保存先:
+  - 実ファイルは `DATA_DIR/uploads/photos/<attachmentId>.<ext>` に保存する
+  - DB には `photo_attachments` テーブルで相対パス、元ファイル名、MIME type、サイズ、説明文を保持する
+- ID / ファイル名:
+  - 添付 ID は UUID v7 形式で発行する
+  - 保存ファイル名は元ファイル名を使わず `<attachmentId>.<ext>` にする
+- 検索:
+  - 記録検索の `keyword` は既存 FTS に加えて、紐付いた写真説明文も対象にする
+- 認可:
+  - UC07 統合前の暫定実装として `x-user-id` ヘッダーをユーザー ID とみなし、未指定時は `local-user` を使う
+  - 記録所有者と異なるユーザーによる添付、説明更新、削除は 403 で拒否する
+
 ## 関連 Issue / PR
 
-- T.B.D.
+- Issue: #6

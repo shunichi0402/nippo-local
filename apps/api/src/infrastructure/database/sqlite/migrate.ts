@@ -13,10 +13,27 @@ export function runMigrations(db: SqliteConnection): void {
       category TEXT,
       project TEXT,
       transcript TEXT,
+      owner_user_id TEXT NOT NULL DEFAULT 'local-user',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       CHECK (kind IN ('memo', 'photo', 'audio', 'transcript', 'daily_report', 'monthly_report'))
     );
+
+    CREATE TABLE IF NOT EXISTS photo_attachments (
+      id TEXT PRIMARY KEY,
+      record_id TEXT REFERENCES records(id) ON DELETE SET NULL,
+      relative_path TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      caption TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_photo_attachments_record_id ON photo_attachments(record_id);
+    CREATE INDEX IF NOT EXISTS idx_photo_attachments_relative_path ON photo_attachments(relative_path);
 
     CREATE VIRTUAL TABLE IF NOT EXISTS record_fts USING fts5(
       title,
@@ -48,6 +65,16 @@ export function runMigrations(db: SqliteConnection): void {
       VALUES (new.rowid, new.title, new.body, new.tags_json, new.category, new.project, new.transcript);
     END;
   `);
+
+  ensureColumn(db, 'records', 'owner_user_id', "TEXT NOT NULL DEFAULT 'local-user'");
+}
+
+function ensureColumn(db: SqliteConnection, tableName: string, columnName: string, definition: string): void {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+
+  if (!columns.some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -56,4 +83,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   db.close();
   console.log('SQLite migrations completed.');
 }
-
