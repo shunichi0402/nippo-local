@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { NewRecord, RecordItem, RecordKind } from '../../domain/records/record.js';
-import type { RecordRepository, RecordSearchQuery } from '../../domain/records/recordRepository.js';
+import type { RecordRepository, RecordSearchQuery, RecordSearchResult, RecordSort } from '../../domain/records/recordRepository.js';
 import type { SqliteConnection } from '../database/sqlite/connection.js';
 
 type RecordRow = {
@@ -15,6 +15,10 @@ type RecordRow = {
   transcript: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type CountRow = {
+  totalCount: number;
 };
 
 export class SqliteRecordRepository implements RecordRepository {
@@ -53,40 +57,81 @@ export class SqliteRecordRepository implements RecordRepository {
     return item;
   }
 
-  list(query: RecordSearchQuery = {}): RecordItem[] {
+  list(query: RecordSearchQuery): RecordSearchResult {
     const conditions: string[] = [];
-    const params: Record<string, string> = {};
+    const params: Record<string, number | string> = {
+      limit: query.pageSize,
+      offset: (query.page - 1) * query.pageSize
+    };
 
     if (query.keyword) {
       conditions.push(`
-        records.rowid IN (
-          SELECT rowid FROM record_fts WHERE record_fts MATCH @keyword
+        (
+          title LIKE @keyword ESCAPE char(92)
+          OR body LIKE @keyword ESCAPE char(92)
+          OR tags_json LIKE @keyword ESCAPE char(92)
+          OR category LIKE @keyword ESCAPE char(92)
+          OR project LIKE @keyword ESCAPE char(92)
+          OR transcript LIKE @keyword ESCAPE char(92)
         )
       `);
-      params.keyword = query.keyword;
+      params.keyword = `%${escapeLike(query.keyword)}%`;
     }
 
-    if (query.targetDate) {
-      conditions.push('target_date = @targetDate');
-      params.targetDate = query.targetDate;
+    if (query.fromDate) {
+      conditions.push('target_date >= @fromDate');
+      params.fromDate = query.fromDate;
     }
 
-    if (query.kind) {
-      conditions.push('kind = @kind');
-      params.kind = query.kind;
+    if (query.toDate) {
+      conditions.push('target_date <= @toDate');
+      params.toDate = query.toDate;
     }
 
-    if (query.tag) {
-      conditions.push('tags_json LIKE @tag');
-      params.tag = `%${query.tag}%`;
+    if (query.types && query.types.length > 0) {
+      const typeParams = query.types.map((type, index) => {
+        const key = `type${index}`;
+        params[key] = type;
+        return `@${key}`;
+      });
+      conditions.push(`kind IN (${typeParams.join(', ')})`);
+    }
+
+    if (query.tags && query.tags.length > 0) {
+      query.tags.forEach((tag, index) => {
+        const key = `tag${index}`;
+        params[key] = tag;
+        conditions.push(`
+          EXISTS (
+            SELECT 1
+            FROM json_each(records.tags_json)
+            WHERE json_each.value = @${key}
+          )
+        `);
+      });
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const total = this.db
+      .prepare(`SELECT COUNT(*) AS totalCount FROM records ${where}`)
+      .get(params) as CountRow;
+
     const rows = this.db
-      .prepare(`SELECT * FROM records ${where} ORDER BY target_date DESC, created_at DESC`)
+      .prepare(`
+        SELECT *
+        FROM records
+        ${where}
+        ORDER BY ${orderBy(query.sort)}
+        LIMIT @limit OFFSET @offset
+      `)
       .all(params) as RecordRow[];
 
-    return rows.map(mapRow);
+    return {
+      items: rows.map(mapRow),
+      totalCount: total.totalCount,
+      page: query.page,
+      pageSize: query.pageSize
+    };
   }
 
   findById(id: string): RecordItem | null {
@@ -94,6 +139,20 @@ export class SqliteRecordRepository implements RecordRepository {
 
     return row ? mapRow(row) : null;
   }
+}
+
+function orderBy(sort: RecordSort): string {
+  const clauses: Record<RecordSort, string> = {
+    targetDate_desc: 'target_date DESC, created_at DESC',
+    targetDate_asc: 'target_date ASC, created_at ASC',
+    updatedAt_desc: 'updated_at DESC, created_at DESC'
+  };
+
+  return clauses[sort];
+}
+
+function escapeLike(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 }
 
 function mapRow(row: RecordRow): RecordItem {
@@ -111,4 +170,3 @@ function mapRow(row: RecordRow): RecordItem {
     updatedAt: row.updated_at
   };
 }
-
