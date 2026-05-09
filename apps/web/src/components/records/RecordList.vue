@@ -1,19 +1,13 @@
 <template>
   <v-card border>
     <v-card-title class="d-flex align-center justify-space-between">
-      <span class="section-title">最近の記録</span>
-      <v-btn
-        icon="mdi-refresh"
-        variant="text"
-        aria-label="再読み込み"
-        :loading="loading"
-        @click="$emit('refresh')"
-      />
+      <span class="section-title">検索結果</span>
     </v-card-title>
     <v-divider />
+    <v-progress-linear v-if="loading" indeterminate color="primary" />
 
     <v-list v-if="records.length > 0" lines="three">
-      <v-list-item v-for="record in records" :key="record.id">
+      <v-list-item v-for="record in records" :key="record.id" :to="`/records/${record.id}`">
         <template #prepend>
           <v-avatar color="primary" variant="tonal" rounded="sm">
             <v-icon :icon="kindIcon(record.kind)" />
@@ -22,7 +16,7 @@
 
         <v-list-item-title>{{ record.title }}</v-list-item-title>
         <v-list-item-subtitle>
-          {{ record.targetDate }} / {{ record.body || '本文なし' }}
+          {{ record.targetDate }} / {{ preview(record) }}
         </v-list-item-subtitle>
 
         <template #append>
@@ -34,7 +28,7 @@
     </v-list>
 
     <v-card-text v-else class="muted">
-      まだ記録がありません。
+      条件に一致する記録がありません。
     </v-card-text>
   </v-card>
 </template>
@@ -45,10 +39,6 @@ import type { RecordItem, RecordKind } from '../../stores/records';
 defineProps<{
   records: RecordItem[];
   loading: boolean;
-}>();
-
-defineEmits<{
-  refresh: [];
 }>();
 
 function kindIcon(kind: RecordKind): string {
@@ -63,5 +53,10 @@ function kindIcon(kind: RecordKind): string {
 
   return icons[kind];
 }
-</script>
 
+function preview(record: RecordItem): string {
+  const source = record.body || record.transcript || '本文なし';
+
+  return source.length > 80 ? `${source.slice(0, 80)}...` : source;
+}
+</script>

@@ -40,8 +40,7 @@ const navItems = [
 ];
 
 const routeTitle = computed(() => {
-  const current = navItems.find((item) => item.to === route.path);
+  const current = navItems.find((item) => route.path === item.to || route.path.startsWith(`${item.to}/`));
   return current?.title ?? 'nippo-local';
 });
 </script>
-
