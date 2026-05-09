@@ -30,6 +30,41 @@
             {{ tag }}
           </v-chip>
         </template>
+
+        <div v-if="record.audioAttachments.length > 0" class="audio-stack mt-3">
+          <div v-for="attachment in record.audioAttachments" :key="attachment.id" class="audio-attachment">
+            <div class="d-flex align-center ga-2 mb-2">
+              <v-icon icon="mdi-volume-high" size="18" />
+              <span class="text-caption">{{ attachment.originalFileName || attachment.fileName }}</span>
+              <v-chip size="x-small" variant="tonal">{{ attachment.mimeType }}</v-chip>
+            </div>
+            <audio class="audio-player" controls :src="audioUrl(attachment.storagePath)" />
+            <div class="transcript-grid mt-2">
+              <v-select
+                v-model="methodDrafts[attachment.id]"
+                :items="transcriptMethodItems"
+                density="compact"
+                hide-details
+                label="方式"
+              />
+              <v-textarea
+                v-model="transcriptDrafts[attachment.id]"
+                auto-grow
+                rows="2"
+                counter="50000"
+                label="文字起こし"
+                density="compact"
+                hide-details
+              />
+              <v-btn
+                icon="mdi-content-save-outline"
+                variant="tonal"
+                aria-label="文字起こしを保存"
+                @click="saveTranscript(record.id, attachment.id)"
+              />
+            </div>
+          </div>
+        </div>
       </v-list-item>
     </v-list>
 
@@ -40,16 +75,46 @@
 </template>
 
 <script setup lang="ts">
-import type { RecordItem, RecordKind } from '../../stores/records';
+import { reactive, watch } from 'vue';
+import type { RecordItem, RecordKind, TranscriptMethod } from '../../stores/records';
 
-defineProps<{
+const props = defineProps<{
   records: RecordItem[];
   loading: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: [];
+  saveTranscript: [
+    payload: {
+      recordId: string;
+      attachmentId: string;
+      transcriptText: string;
+      transcriptMethod: TranscriptMethod;
+    }
+  ];
 }>();
+
+const transcriptDrafts = reactive<Record<string, string>>({});
+const methodDrafts = reactive<Record<string, TranscriptMethod>>({});
+const transcriptMethodItems = [
+  { title: '手入力', value: 'manual' },
+  { title: 'ローカルモデル', value: 'local_model' },
+  { title: '外部 API', value: 'external_api' }
+];
+
+watch(
+  () => props.records,
+  (records) => {
+    for (const record of records) {
+      for (const attachment of record.audioAttachments) {
+        transcriptDrafts[attachment.id] = attachment.transcriptText ?? '';
+        methodDrafts[attachment.id] = attachment.transcriptMethod ?? 'manual';
+      }
+    }
+  },
+  { immediate: true }
+);
 
 function kindIcon(kind: RecordKind): string {
   const icons: Record<RecordKind, string> = {
@@ -63,5 +128,70 @@ function kindIcon(kind: RecordKind): string {
 
   return icons[kind];
 }
+
+function audioUrl(storagePath: string): string {
+  return `/media/${storagePath}`;
+}
+
+function saveTranscript(recordId: string, attachmentId: string): void {
+  const transcriptMethod = methodDrafts[attachmentId] ?? 'manual';
+  const transcriptText = transcriptDrafts[attachmentId] ?? '';
+
+  if (transcriptMethod === 'external_api') {
+    const confirmed = window.confirm(
+      [
+        '外部 API 送信対象',
+        `recordId: ${recordId}`,
+        `attachmentId: ${attachmentId}`,
+        `文字数: ${transcriptText.length}`
+      ].join('\n')
+    );
+
+    if (!confirmed) {
+      return;
+    }
+  }
+
+  emit('saveTranscript', {
+    recordId,
+    attachmentId,
+    transcriptText,
+    transcriptMethod
+  });
+}
 </script>
 
+<style scoped>
+.audio-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.audio-attachment {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.audio-player {
+  width: 100%;
+  min-height: 40px;
+}
+
+.transcript-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 180px) minmax(0, 1fr) 40px;
+  gap: 8px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .transcript-grid {
+    grid-template-columns: 1fr 40px;
+  }
+
+  .transcript-grid :deep(.v-select) {
+    grid-column: 1 / -1;
+  }
+}
+</style>

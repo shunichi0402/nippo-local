@@ -129,6 +129,26 @@ MVP では、アプリ内で録音を開始、停止し、音声だけの単体�
 - 認可系: 他ユーザー所有 `recordId` への録音、音声登録、文字起こし更新を検証
 - 検索: 文字起こし語句で記録を検索
 
+## 実装メモ
+
+- API:
+  - `POST /api/audio/recording/start` でユーザー単位の録音セッションを開始し、重複開始は `409` を返す
+  - `POST /api/audio/recording/stop` で録音データを保存し、音声だけの単体記録または既存記録への添付を作成する
+  - `POST /api/audio/upload` で外部音声ファイルを同じ保存処理に載せる
+  - `PUT /api/audio/records/:recordId/attachments/:attachmentId/transcript` で文字起こし本文と方式を更新する
+- 保存:
+  - 音声ファイルは `DATA_DIR/audio/<attachmentId>.<ext>` に保存し、`/media/audio/<fileName>` から再生する
+  - `attachmentId` は UUID v7 形式で発行し、元ファイル名は `audio_attachments.original_file_name` に保持する
+  - 許可形式は `m4a/mp3/wav/webm`、上限は 100MB
+- 検索:
+  - 音声添付の文字起こし本文は `records.transcript` に集約し、既存の FTS 検索対象に含める
+- 認可:
+  - レコードには `owner_user_id` を保持し、`authUserId` と一致しない既存記録への音声添付、文字起こし更新は `403` にする
+- Web:
+  - 記録画面で録音開始/停止、外部音声取り込み、新規音声記録作成、既存記録への添付、再生、文字起こし編集を行う
+  - `transcriptMethod=external_api` を選んだ保存時は、送信対象の確認ダイアログを表示する
+
 ## 関連 Issue / PR
 
-- T.B.D.
+- Issue: #7
+- PR: T.B.D.
